@@ -1,0 +1,10 @@
+{
+    "cmake.sourceDirectory": "/Users/szymon/Documents/car_rental_api/backend",
+    "C_Cpp.errorSquiggles": "disabled",
+    "files.associations": {
+        "ostream": "c",
+        "iostream": "cpp",
+        "string": "cpp",
+        "ios": "cpp"
+    }
+}
