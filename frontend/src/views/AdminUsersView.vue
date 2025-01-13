@@ -1,16 +1,24 @@
 <script setup>
-import TestApi from '../components/TestApi.vue'
-import AdminPanel from './AdminPanel.vue'
 </script>
 <template>
     <div class="c-adminUsersViev">
-        <AdminPanel></AdminPanel>
+    <nav class="nav-panel">
+        <RouterLink to="/users/add_user">Add user</RouterLink>
+        <RouterLink to="/users/delete_user">Delete user</RouterLink>
+        <!-- <RouterLink to="/about">About</RouterLink> -->
+    </nav>
+    <div class="router-view">
+      <router-view></router-view>
+    </div>
+
     <div>
-        <TestApi />
+        
     </div>
     </div>
 </template>
 
 <style scoped>
-
+    .c-adminUsersViev{
+        display: flex;
+    }
 </style>
