@@ -179,5 +179,72 @@ bool SQLiteManager::deleteVehicle(const std::string& vin) {
     }
 }
 
+bool SQLiteManager::createTableRental() {
+    const std::string sql = 
+        "CREATE TABLE IF NOT EXISTS rental ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "rental_start DATE NOT NULL, "
+        "rental_end DATE NOT NULL, "
+        "is_accepted BOOLEAN NOT NULL, "
+        "car_vin TEXT NOT NULL, "
+        "user_id INTEGER NOT NULL, "
+        "FOREIGN KEY(car_vin) REFERENCES vehicle(vin), "
+        "FOREIGN KEY(user_id) REFERENCES person(id));";
+    return executeSQL(sql);
+}
+
+bool SQLiteManager::addRental(const std::string& rental_start, const std::string& rental_end, bool is_accepted, const std::string& car_vin, int user_id) {
+    try {
+        std::string sql = "INSERT INTO rental (rental_start, rental_end, is_accepted, car_vin, user_id) "
+                          "VALUES ('" + rental_start + "', '" + rental_end + "', " + (is_accepted ? "1" : "0") + ", '" + car_vin + "', " + std::to_string(user_id) + ");";
+        return executeSQL(sql);
+    } catch (const std::exception& e) {
+        std::cerr << "Error in addRental: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+crow::json::wvalue SQLiteManager::getRentals() {
+    const std::string sql = "SELECT * FROM rental;";
+
+    sqlite3_stmt* stmt;
+    crow::json::wvalue rentals_json = crow::json::wvalue();  
+
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) != SQLITE_OK) {
+        std::cerr << "Failed to fetch data: " << sqlite3_errmsg(db) << std::endl;
+        return rentals_json;
+    }
+    int index = 0;
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        crow::json::wvalue rental_json;
+
+        rental_json["id"] = sqlite3_column_int(stmt, 0);
+        rental_json["rental_start"] = std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1)));
+        rental_json["rental_end"] = std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2)));
+        rental_json["is_accepted"] = sqlite3_column_int(stmt, 3);
+        rental_json["car_vin"] = std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
+        rental_json["user_id"] = sqlite3_column_int(stmt, 5);
+
+        rentals_json[index] = std::move(rental_json);
+        ++index;
+    }
+
+    sqlite3_finalize(stmt);
+
+    return rentals_json;
+}
+
+bool SQLiteManager::deleteRental(int id) {
+    try {
+        std::string sql = "DELETE FROM rental WHERE id = " + std::to_string(id) + ";";
+
+        return executeSQL(sql);
+    } catch (const std::exception& e) {
+        std::cerr << "Error in deleteRental: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 
 

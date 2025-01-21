@@ -1,7 +1,7 @@
 <script setup>
 </script>
 <template>
-    <div class="c-adminCarsViev">
+    <div class="c-adminCarsView">
     <nav class="nav-panel">
         <RouterLink to="/cars/add_vehicle">Add vehicle</RouterLink>
         <RouterLink to="/cars/delete_vehicle">Delete vehicle</RouterLink>
@@ -18,7 +18,7 @@
 </template>
 
 <style scoped>
-    .c-adminCarsViev{
+    .c-adminCarsView{
         display: flex;
     }
 </style>

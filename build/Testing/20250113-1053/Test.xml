@@ -6,7 +6,7 @@
 	CompilerName="/Library/Developer/CommandLineTools/usr/bin/c++"
 	CompilerVersion="16.0.0.16000026"
 	OSName="macOS"
-	Hostname="Szymon.local"
+	Hostname="MacBookAir"
 	OSRelease="15.1.1"
 	OSVersion="24B91"
 	OSPlatform="arm64"
@@ -25,11 +25,11 @@
 	ProcessorClockFrequency="0"
 	>
 	<Testing>
-		<StartDateTime>Jan 13 11:53 CET</StartDateTime>
-		<StartTestTime>1736765612</StartTestTime>
+		<StartDateTime>Jan 13 18:05 CET</StartDateTime>
+		<StartTestTime>1736787916</StartTestTime>
 		<TestList/>
-		<EndDateTime>Jan 13 11:53 CET</EndDateTime>
-		<EndTestTime>1736765612</EndTestTime>
+		<EndDateTime>Jan 13 18:05 CET</EndDateTime>
+		<EndTestTime>1736787916</EndTestTime>
 		<ElapsedMinutes>0</ElapsedMinutes>
 	</Testing>
 </Site>

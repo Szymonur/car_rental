@@ -26,6 +26,11 @@ public:
     crow::json::wvalue getVehicles();  
     bool deleteVehicle(const std::string& vin);  
 
+    bool createTableRental();
+    bool addRental(const std::string& rental_start, const std::string& rental_end, bool is_accepted, const std::string& car_vin, int user_id);
+    crow::json::wvalue getRentals();
+    bool deleteRental(int id);
+
 private:
     sqlite3* db;
     std::string dbName;

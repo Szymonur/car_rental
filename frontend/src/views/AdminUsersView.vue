@@ -1,7 +1,7 @@
 <script setup>
 </script>
 <template>
-    <div class="c-adminUsersViev">
+    <div class="c-adminUsersView">
     <nav class="nav-panel">
         <RouterLink to="/users/add_user">Add user</RouterLink>
         <RouterLink to="/users/delete_user">Delete user</RouterLink>
@@ -18,7 +18,7 @@
 </template>
 
 <style scoped>
-    .c-adminUsersViev{
+    .c-adminUsersView{
         display: flex;
     }
 </style>

@@ -2,10 +2,15 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import AdminUsersView from '../views/AdminUsersView.vue'
 import AdminCarsView from '../views/AdminCarsView.vue'
+import AdminRentalsView from '../views/AdminRentalsView.vue'
+
 import FormDeleteUser from '../components/FormDeleteUser.vue'
 import FormAddUser from '../components/FromAddUser.vue'
 import FormAddVehicle from '../components/FormAddVehicle.vue'
 import FormDeleteVehicle from '../components/FormDeleteVehicle.vue'
+import FormAddRental from '../components/FormAddRental.vue'
+
+
 
 
  
@@ -51,6 +56,23 @@ const router = createRouter({
         },
       ]
     },
+    {
+      path: '/rentals',
+      name: 'rentals',
+      component: AdminRentalsView,
+      children: [
+        {
+          path: 'add_rental',
+          name: 'add_rental',
+          component: FormAddRental,
+        },
+        // {
+        //   path: 'menage_rentals',
+        //   name: 'menage_rentals',
+        //   component: FormMenageRentals,
+        // },
+      ]
+    }
     
     // {
     //   path: '/about',

@@ -69,6 +69,70 @@ form{
     padding: 10px 16px;
     box-sizing: border-box;
 }
+input[type="date"] {
+    border: 1px solid var(--yellow);
+    background-color: var(--light-blue);
+    padding: 4px 10px;
+    margin: 4px 0;
+    max-width: 300px;
+    font-size: 16px;
+    color: var(--color-text);
+    border-radius: 4px;
+  }
+  
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--yellow);
+    margin-top: 8px;
+    cursor: pointer;
+    border: 2px solid var(--yellow);
+    background-color: var(--light-blue);
+    display: inline-block;
+    border-radius: 4px;
+    position: relative;
+  }
+  
+  input[type="checkbox"]:checked::after {
+    content: '\2713';
+    font-size: 14px;
+    color: var(--yellow);
+    font-weight: bold;
+    font-size: 1.25rem;
+    position: absolute;
+    top: -6px;
+    left: 1px;
+  }
+  
+  input:is(:-webkit-autofill, :autofill) {
+    border: 1px solid var(--yellow);
+    background-color: var(--light-blue) !important;
+    padding: 2px 10px;
+    margin: 4px 0;
+    max-width: 300px;
+  }
+  select {
+    border: 1px solid var(--yellow);
+    background-color: var(--light-blue);
+    padding: 6px 10px;
+    margin: 4px 0;
+    max-width: 300px;
+    font-size: 16px;
+    color: var(--color-text);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  select:focus {
+    outline: none;
+    border-color: var(--dark-blue);
+  }
+  
+  option {
+    background-color: var(--light-blue);
+    color: var(--dark-blue);
+    padding: 4px;
+}
 nav{
     display: flex;
     justify-content: flex-start;
@@ -83,6 +147,7 @@ nav{
     background-color: var(--blue);
     opacity: 85%;
     box-sizing: border-box;
+    z-index: 999999;
 }
 .nav-panel{
     display: flex;
