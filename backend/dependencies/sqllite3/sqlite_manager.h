@@ -27,10 +27,12 @@ public:
     bool deleteVehicle(const std::string& vin);  
 
     bool createTableRental();
-    bool addRental(const std::string& rental_start, const std::string& rental_end, bool is_accepted, const std::string& car_vin, int user_id);
+    bool addRental(const std::string& rental_start, const std::string& rental_end, bool is_accepted, const std::string& car_vin, int user_id, double total_cost);
     crow::json::wvalue getRentals();
+    crow::json::wvalue getRentalById(int rentalId);
     bool deleteRental(int id);
-
+    bool updateRental(int rental_id, const std::string& rental_start, const std::string& rental_end, bool is_accepted, const std::string& car_vin, int user_id, double total_cost );
+    crow::json::wvalue getRentalsByCarVin(const std::string& carVin);
 private:
     sqlite3* db;
     std::string dbName;

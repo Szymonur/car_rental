@@ -8,33 +8,18 @@ const formData = ref({
   is_accepted: false,
   car_vin: "",
   user_id: "",
+  total_cost: 0,
 });
 
 const users = ref([]);
 const vehicles = ref([]);
+const rentals = ref([]);
 const responseMessage = ref("");
 const userSearch = ref("");
 const vehicleSearch = ref("");
+const validationMessage = ref("");
 
-const filteredUsers = computed(() => {
-  if (!userSearch.value.trim()) return users.value;
-  return users.value.filter(user => {
-    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-    return (
-      fullName.includes(userSearch.value.toLowerCase()) ||
-      user.phone.includes(userSearch.value)
-    );
-  });
-});
-
-const filteredVehicles = computed(() => {
-  if (!vehicleSearch.value.trim()) return vehicles.value;
-  return vehicles.value.filter(vehicle => 
-    vehicle.vin.toLowerCase().includes(vehicleSearch.value.toLowerCase())
-  );
-});
-
-// Fetch users and vehicles data
+// Fetch users, vehicles, and rentals data
 const fetchUsers = async () => {
   try {
     const response = await fetch("http://localhost:18080/users");
@@ -61,12 +46,112 @@ const fetchVehicles = async () => {
   }
 };
 
+const fetchRentals = async () => {
+  try {
+    const response = await fetch("http://localhost:18080/rentals");
+    if (response.ok) {
+      rentals.value = await response.json();
+    } else {
+      console.error("Failed to fetch rentals.");
+    }
+  } catch (error) {
+    console.error("Error fetching rentals:", error);
+  }
+};
+
+// Filtered users and vehicles
+const filteredUsers = computed(() => {
+  if (!userSearch.value.trim()) return users.value;
+  return users.value.filter(user => {
+    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+    return (
+      fullName.includes(userSearch.value.toLowerCase()) ||
+      user.phone.includes(userSearch.value)
+    );
+  });
+});
+
+const filteredVehicles = computed(() => {
+  const rentalStart = new Date(formData.value.rental_start).getTime();
+  const rentalEnd = new Date(formData.value.rental_end).getTime();
+
+  return vehicles.value.filter(vehicle => {
+    // Check if vehicle is available and not overlapping with any rental
+    if (!vehicle.is_available) return false;
+
+    const hasConflict = rentals.value.some(rental => {
+      const existingStart = new Date(rental.rental_start).getTime();
+      const existingEnd = new Date(rental.rental_end).getTime();
+
+      return (
+        rental.car_vin === vehicle.vin &&
+        rentalStart < existingEnd &&
+        rentalEnd > existingStart
+      );
+    });
+
+    return !hasConflict;
+  }).filter(vehicle => 
+    vehicle.vin.toLowerCase().includes(vehicleSearch.value.toLowerCase())
+  );
+});
+
+// Fetch data on mount
 onMounted(() => {
   fetchUsers();
   fetchVehicles();
+  fetchRentals();
 });
 
+// Calculate total cost based on selected vehicle and rental dates
+const calculateTotalCost = () => {
+  const vehicle = vehicles.value.find(v => v.vin === formData.value.car_vin);
+  if (vehicle && formData.value.rental_start && formData.value.rental_end) {
+    const startDate = new Date(formData.value.rental_start);
+    const endDate = new Date(formData.value.rental_end);
+    const rentalLength = (endDate - startDate) / (1000 * 60 * 60 * 24); // Days
+
+    if (rentalLength >= 1) {
+      formData.value.total_cost = rentalLength * vehicle.price_per_day;
+    } else {
+      formData.value.total_cost = 0; // Reset if invalid length
+    }
+  }
+};
+
+// Validate rental details
+const validateRental = () => {
+  const today = new Date().setHours(0, 0, 0, 0);
+  const startDate = new Date(formData.value.rental_start).setHours(0, 0, 0, 0);
+  const endDate = new Date(formData.value.rental_end).setHours(0, 0, 0, 0);
+
+  if (!formData.value.rental_start || !formData.value.rental_end) {
+    validationMessage.value = "Both start and end dates are required.";
+    return false;
+  }
+
+  if (startDate < today) {
+    validationMessage.value = "Rental start date cannot be in the past.";
+    return false;
+  }
+
+  if (endDate <= startDate) {
+    validationMessage.value = "Rental end date must be after the start date.";
+    return false;
+  }
+
+  validationMessage.value = ""; // Clear validation message if valid
+  return true;
+};
+
+// Submit form with validation
 const submitForm = async () => {
+  if (!validateRental()) {
+    return; // Stop submission if validation fails
+  }
+
+  calculateTotalCost(); // Ensure total_cost is calculated before submission
+
   try {
     const response = await fetch("http://localhost:18080/add_rental", {
       method: "POST",
@@ -88,7 +173,11 @@ const submitForm = async () => {
         is_accepted: false,
         car_vin: "",
         user_id: "",
+        total_cost: 0,
       };
+
+      // Refresh rentals to update availability
+      fetchRentals();
     } else {
       responseMessage.value = "Error: Failed to submit the rental form.";
     }
@@ -99,16 +188,17 @@ const submitForm = async () => {
 };
 </script>
 
+
 <template>
   <div class="c-formAddRental">
     <form @submit.prevent="submitForm">
       <h1>Add Rental</h1>
 
       <label for="rental_start">Rental Start</label>
-      <input type="date" id="rental_start" v-model="formData.rental_start" required />
+      <input type="date" id="rental_start" v-model="formData.rental_start" @change="calculateTotalCost" required />
 
       <label for="rental_end">Rental End</label>
-      <input type="date" id="rental_end" v-model="formData.rental_end" required />
+      <input type="date" id="rental_end" v-model="formData.rental_end" @change="calculateTotalCost" required />
 
       <label for="is_accepted">Is Accepted</label>
       <input type="checkbox" id="is_accepted" v-model="formData.is_accepted" />
@@ -128,12 +218,16 @@ const submitForm = async () => {
       <input type="text" id="vehicle_search" v-model="vehicleSearch" placeholder="Search by VIN" />
 
       <label for="car_vin">Car VIN</label>
-      <select id="car_vin" v-model="formData.car_vin" required>
+      <select id="car_vin" v-model="formData.car_vin" @change="calculateTotalCost" required>
         <option value="" disabled>Select a vehicle</option>
         <option v-for="vehicle in filteredVehicles" :key="vehicle.vin" :value="vehicle.vin">
-          {{ vehicle.make }} {{ vehicle.model }} VIN: {{ vehicle.vin }}
+          {{ vehicle.make }} {{ vehicle.model }} VIN: {{ vehicle.vin }} - ${{ vehicle.price_per_day }}/day
         </option>
       </select>
+
+      <p>Total Cost: ${{ formData.total_cost }}</p>
+
+      <p class="validation-error" v-if="validationMessage">{{ validationMessage }}</p>
 
       <button class="button-primary" type="submit">Add Rental</button>
     </form>
@@ -141,19 +235,10 @@ const submitForm = async () => {
     <p v-if="responseMessage">{{ responseMessage }}</p>
   </div>
 </template>
+
 <style scoped>
-form {
-  display: flex;
-  flex-direction: column;
-  max-width: 400px;
-  margin-right: 400px;
-}
-
-label {
+.validation-error {
+  color: red;
   margin-top: 10px;
-}
-
-button {
-  margin-top: 20px;
 }
 </style>

@@ -9,6 +9,8 @@ import FormAddUser from '../components/FromAddUser.vue'
 import FormAddVehicle from '../components/FormAddVehicle.vue'
 import FormDeleteVehicle from '../components/FormDeleteVehicle.vue'
 import FormAddRental from '../components/FormAddRental.vue'
+import MenageRentals from '../components/MenageRentals.vue'
+import EditRental from '../components/EditRental.vue'
 
 
 
@@ -66,11 +68,16 @@ const router = createRouter({
           name: 'add_rental',
           component: FormAddRental,
         },
-        // {
-        //   path: 'menage_rentals',
-        //   name: 'menage_rentals',
-        //   component: FormMenageRentals,
-        // },
+        {
+          path: 'menage_rentals',
+          name: 'menage_rentals',
+          component: MenageRentals
+        },
+        {
+          path: 'menage_rentals:id',
+          name: 'menage_rentals_id',
+          component: EditRental
+        },
       ]
     }
     

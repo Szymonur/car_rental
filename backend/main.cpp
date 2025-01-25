@@ -8,6 +8,7 @@
 int main() {
 
     SQLiteManager sqlite("test.db");
+    
     if (sqlite.createTablePerson()) {
         std::cout << "Database and table created successfully!" << std::endl;
     } else {
@@ -18,6 +19,7 @@ int main() {
     } else {
         std::cerr << "Failed to create the vehicle table!" << std::endl;
     }
+
     if (sqlite.createTableRental()) {
         std::cout << "Rental table created successfully!" << std::endl;
     } else {
@@ -163,43 +165,46 @@ int main() {
             return res;
         }
     });
+// ----------------------------- ADD RENTAL -----------------------------------
     CROW_ROUTE(app, "/add_rental").methods(crow::HTTPMethod::Post)([](const crow::request& req) {
-    SQLiteManager sqlite("test.db");
-    auto body = crow::json::load(req.body);
-    if (!body) {
-        return crow::response(400, "Invalid JSON");
-    }
-
-    try {
-        // Extract fields from the JSON body
-        std::string rental_start = body["rental_start"].s();
-        std::string rental_end = body["rental_end"].s();
-        bool is_accepted = body["is_accepted"].b();
-        std::string car_vin = body["car_vin"].s();
-        int user_id = body["user_id"].i();
-
-        // Prepare response JSON
-        crow::json::wvalue res;
-        res["message"] = "Data received successfully!";
-        res["rental_start"] = rental_start;
-        res["rental_end"] = rental_end;
-        res["is_accepted"] = is_accepted;
-        res["car_vin"] = car_vin;
-        res["user_id"] = user_id;
-
-        // Add rental to database
-        if (sqlite.addRental(rental_start, rental_end, is_accepted, car_vin, user_id)) {
-            std::cout << "Rental added successfully!" << std::endl;
-        } else {
-            std::cerr << "Failed to add rental!" << std::endl;
-            return crow::response(500, "Failed to add rental!");
+        SQLiteManager sqlite("test.db");
+        auto body = crow::json::load(req.body);
+        if (!body) {
+            return crow::response(400, "Invalid JSON");
         }
 
-        return crow::response(200, res);
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return crow::response(400, "Invalid or missing fields in JSON");
-    }
+        try {
+            // Extract fields from the JSON body
+            std::string rental_start = body["rental_start"].s();
+            std::string rental_end = body["rental_end"].s();
+            bool is_accepted = body["is_accepted"].b();
+            std::string car_vin = body["car_vin"].s();
+            int user_id = body["user_id"].i();
+            double total_cost = body["total_cost"].d();
+
+            // Prepare response JSON
+            crow::json::wvalue res;
+            res["message"] = "Data received successfully!";
+            res["rental_start"] = rental_start;
+            res["rental_end"] = rental_end;
+            res["is_accepted"] = is_accepted;
+            res["car_vin"] = car_vin;
+            res["user_id"] = user_id;
+            res["total_cost"] = total_cost;
+
+            // Add rental to database
+            if (sqlite.addRental(rental_start, rental_end, is_accepted, car_vin, user_id, total_cost)) {
+                std::cout << "Rental added successfully!" << std::endl;
+            } else {
+                std::cerr << "Failed to add rental!" << std::endl;
+                return crow::response(500, "Failed to add rental!");
+            }
+
+            return crow::response(200, res);
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return crow::response(400, "Invalid or missing fields in JSON");
+        }
     });
 
     // ----------------------------- DELETE RENTAL -----------------------------------
@@ -216,16 +221,78 @@ int main() {
             return res;
         }
     });
-    // ----------------------------- DELETE RENTAL -----------------------------------
+
+    // ----------------------------- GET RENTALS -----------------------------------
     CROW_ROUTE(app, "/rentals")
     ([](const crow::request& req) {
         SQLiteManager sqlite("test.db");
         crow::json::wvalue vehicles_json = sqlite.getRentals();
         return vehicles_json;  
     });
+    
+    // ----------------------------- GET SINGLE RENTAL -----------------------------------
+    CROW_ROUTE(app, "/rentals/<int>")
+    ([](const crow::request& req, int rentalId) {
+        SQLiteManager sqlite("test.db");
+        crow::json::wvalue rental_json = sqlite.getRentalById(rentalId);
+
+        if (rental_json.size() == 0) {
+            return crow::response(404, "Rental not found");
+        }
+
+        return crow::response(rental_json);
+    });
+    
+
+
+    // ----------------------------- MODIFY RENTAL -----------------------------------
+    CROW_ROUTE(app, "/rentals/<int>").methods("PUT"_method)
+    ([](const crow::request& req, int rental_id) {
+        SQLiteManager sqlite("test.db");
+
+        auto body = crow::json::load(req.body);
+        if (!body) {
+            return crow::response(400, "Invalid JSON data");
+        }
+
+        // Extract fields from JSON
+        std::string rental_start = body["rental_start"].s();
+        std::string rental_end = body["rental_end"].s();
+        bool is_accepted = body["is_accepted"].b();
+        std::string car_vin = body["car_vin"].s();
+        int user_id = body["user_id"].i();
+        double total_cost = body["total_cost"].d();
+
+        // Call update method
+        bool success = sqlite.updateRental(rental_id, rental_start, rental_end, is_accepted, car_vin, user_id, total_cost);
+
+        if (success) {
+            return crow::response(200, "Rental updated successfully");
+        } else {
+            return crow::response(500, "Failed to update rental");
+        }
+    });
+     // ----------------------------- GET ALL CAR RENTALS -----------------------------------
+    CROW_ROUTE(app, "/rentals/car/<string>").methods("GET"_method)
+    ([](const crow::request& req, const std::string& car_vin) {
+        SQLiteManager sqlite("test.db");
+
+        if (car_vin.size() == 0) {
+            return crow::response(400, "Car VIN is required");
+        }
+
+        crow::json::wvalue rentals = sqlite.getRentalsByCarVin(car_vin);
+
+        if (rentals.size() == 0) {
+            return crow::response(404, "No rentals found for the specified car VIN");
+        }
+
+        return crow::response(200, rentals);
+    });
 
 
 
+    
 
 
     app.port(18080).multithreaded().run();

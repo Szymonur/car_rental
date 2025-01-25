@@ -12,9 +12,33 @@ a{
     text-decoration: none;
     color: var(--color-text);
 }
-td, th{
+
+th {
+  font-weight: bold;
+}
+
+td{
     padding: 2px 16px;
 }
+table, td, th {
+  border: 1px solid var(--color-text);
+  border-collapse: collapse;
+}
+table{
+  margin-top: 2rem;
+}
+table a:hover {
+  color: var(--yellow);
+}
+table button:hover {
+  color: var(--yellow);
+}
+
+
+table tr:nth-child(even) {
+  background-color: var(--light-blue); /* Kolor dla parzystych wierszy */
+}
+
 
 button, input[type="submit"], input[type="reset"] {
 	background: none;
