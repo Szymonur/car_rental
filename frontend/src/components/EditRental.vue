@@ -9,6 +9,7 @@ const rentalId = parseInt(route.params.id); // Get rental ID from route
 const rental = ref(null); // Store rental details
 const responseMessage = ref("");
 const validationMessage = ref(""); // For validation errors
+const dailyRate = 50; // Assume a fixed daily rental rate for simplicity
 
 // Fetch rental details
 const fetchRental = async () => {
@@ -16,13 +17,39 @@ const fetchRental = async () => {
     const response = await fetch(`http://localhost:18080/rentals/${rentalId}`);
     if (response.ok) {
       rental.value = await response.json();
-      // Ensure that is_accepted is treated as a boolean (true/false)
-      rental.value.is_accepted = rental.value.is_accepted === true || rental.value.is_accepted === 'true' || rental.value.is_accepted === 1;
+      // Ensure that is_accepted, if_paid, if_returned, and if_issued are treated as booleans (true/false)
+      rental.value.is_accepted = Boolean(rental.value.is_accepted);
+      rental.value.if_paid = Boolean(rental.value.if_paid);
+      rental.value.if_returned = Boolean(rental.value.if_returned);
+      rental.value.if_issued = Boolean(rental.value.if_issued);
+
+      // Calculate the current cost on component mount
+      updateRentalCost();
     } else {
       console.error("Failed to fetch rental.");
     }
   } catch (error) {
     console.error("Error fetching rental:", error);
+  }
+};
+
+// Calculate total cost
+const calculateCost = () => {
+  if (!rental.value?.rental_start || !rental.value?.rental_end) return 0;
+
+  const startDate = new Date(rental.value.rental_start);
+  const endDate = new Date(rental.value.rental_end);
+  const days = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))); // At least 1 day
+
+  return days * dailyRate;
+};
+
+// Update the rental cost when dates change
+const updateRentalCost = () => {
+  try {
+    rental.value.total_cost = calculateCost(); // Ensure cost is calculated and updated
+  } catch (error) {
+    console.error("Error updating rental cost:", error);
   }
 };
 
@@ -47,42 +74,6 @@ const validateRental = async () => {
     return false;
   }
 
-  // Fetch existing rentals for the same car
-  try {
-    const response = await fetch(`http://localhost:18080/rentals/car/${rental.value.car_vin}`);
-    if (response.ok) {
-      const existingRentals = await response.json();
-
-      // Check for overlap with other rentals (excluding the current rental)
-      const overlap = existingRentals.some((existingRental) => {
-        // Skip the current rental being edited
-        if (existingRental.id === rentalId) return false;
-
-        const existingStart = new Date(existingRental.rental_start).setHours(0, 0, 0, 0);
-        const existingEnd = new Date(existingRental.rental_end).setHours(0, 0, 0, 0);
-
-        return (
-          (startDate >= existingStart && startDate <= existingEnd) || // Start date overlaps
-          (endDate >= existingStart && endDate <= existingEnd) || // End date overlaps
-          (startDate <= existingStart && endDate >= existingEnd) // Full overlap
-        );
-      });
-
-      if (overlap) {
-        validationMessage.value = "The selected dates overlap with an existing rental for this car.";
-        return false;
-      }
-    } else {
-      console.error("Failed to fetch existing rentals for validation.");
-      validationMessage.value = "An error occurred while validating rental dates.";
-      return false;
-    }
-  } catch (error) {
-    console.error("Error validating rental dates:", error);
-    validationMessage.value = "An error occurred while validating rental dates.";
-    return false;
-  }
-
   validationMessage.value = ""; // Clear validation message if valid
   return true;
 };
@@ -94,6 +85,8 @@ const updateRental = async () => {
   }
 
   try {
+    rental.value.total_cost = calculateCost(); // Ensure cost is up to date
+
     const response = await fetch(`http://localhost:18080/rentals/${rentalId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -115,19 +108,34 @@ onMounted(() => {
   fetchRental(); // Load rental details on mount
 });
 </script>
+
+
 <template>
   <div>
     <form v-if="rental">
       <h1>Edit Rental #{{ rentalId }}</h1>
 
       <label for="rental_start">Rental Start:</label>
-      <input type="date" id="rental_start" v-model="rental.rental_start" />
+      <input type="date" id="rental_start" v-model="rental.rental_start" @change="updateRentalCost" />
 
       <label for="rental_end">Rental End:</label>
-      <input type="date" id="rental_end" v-model="rental.rental_end" />
+      <input type="date" id="rental_end" v-model="rental.rental_end" @change="updateRentalCost" />
 
-      <label for="is_accepted">Is Accepted:</label>
-      <input type="checkbox" id="is_accepted" v-model="rental.is_accepted" />
+      <div class="form-row">
+        <label for="is_accepted">Is Accepted:</label>
+        <input type="checkbox" id="is_accepted" v-model="rental.is_accepted" />
+
+        <label for="if_paid">If Paid:</label>
+        <input type="checkbox" id="if_paid" v-model="rental.if_paid" />
+
+        <label for="if_returned">If Returned:</label>
+        <input type="checkbox" id="if_returned" v-model="rental.if_returned" />
+
+        <label for="if_issued">If Issued:</label>
+        <input type="checkbox" id="if_issued" v-model="rental.if_issued" />
+      </div>
+
+      <p>Total Cost: <strong>{{ rental.total_cost }} $</strong></p>
 
       <!-- Display validation error -->
       <p class="validation-error" v-if="validationMessage">{{ validationMessage }}</p>
@@ -135,7 +143,7 @@ onMounted(() => {
       <button class="button-primary" type="button" @click="updateRental">Save Changes</button>
 
       <p v-if="responseMessage">{{ responseMessage }}</p>
-    </form> 
+    </form>
   </div>
 </template>
 
@@ -143,5 +151,21 @@ onMounted(() => {
 .validation-error {
   color: red;
   margin-top: 10px;
+}
+.form-row {
+  display: flex; 
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+.button-primary {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+}
+.button-primary:hover {
+  background-color: #0056b3;
 }
 </style>

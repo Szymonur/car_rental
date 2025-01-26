@@ -9,6 +9,9 @@ const formData = ref({
   car_vin: "",
   user_id: "",
   total_cost: 0,
+  if_paid: false,
+  if_issued: false,  // New field
+  if_returned: false, // New field
 });
 
 const users = ref([]);
@@ -173,6 +176,9 @@ const submitForm = async () => {
         is_accepted: false,
         car_vin: "",
         user_id: "",
+        if_paid: false,
+        if_issued: false, // Reset new field
+        if_returned: false, // Reset new field
         total_cost: 0,
       };
 
@@ -188,7 +194,6 @@ const submitForm = async () => {
 };
 </script>
 
-
 <template>
   <div class="c-formAddRental">
     <form @submit.prevent="submitForm">
@@ -200,8 +205,19 @@ const submitForm = async () => {
       <label for="rental_end">Rental End</label>
       <input type="date" id="rental_end" v-model="formData.rental_end" @change="calculateTotalCost" required />
 
-      <label for="is_accepted">Is Accepted</label>
-      <input type="checkbox" id="is_accepted" v-model="formData.is_accepted" />
+      <div class="c-formAddRental-row">
+        <label for="is_accepted">Is Accepted</label>
+        <input type="checkbox" id="is_accepted" v-model="formData.is_accepted" />
+
+        <label for="if_paid">Is Paid</label>
+        <input type="checkbox" id="if_paid" v-model="formData.if_paid" />
+
+        <label for="if_issued">Is Issued</label>
+        <input type="checkbox" id="if_issued" v-model="formData.if_issued" />
+
+        <label for="if_returned">Is Returned</label>
+        <input type="checkbox" id="if_returned" v-model="formData.if_returned" />
+      </div>
 
       <label for="user_search">Search User</label>
       <input type="text" id="user_search" v-model="userSearch" placeholder="Search by name or phone" />
@@ -240,5 +256,11 @@ const submitForm = async () => {
 .validation-error {
   color: red;
   margin-top: 10px;
+}
+.c-formAddRental-row {
+  display: flex; 
+  align-items: center;
+  gap: 10px;
+  padding: 10
 }
 </style>

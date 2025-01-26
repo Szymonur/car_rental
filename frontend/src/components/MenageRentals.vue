@@ -5,6 +5,8 @@ const rentals = ref([]);
 const users = ref([]);
 const rentalSearch = ref("");
 const responseMessage = ref("");
+const filterDate = ref("all"); // 'all', 'past', 'ongoing', 'future'
+const filterStatus = ref("all"); // 'all', 'not_issued', 'issued', 'returned'
 
 // Computed rentals with user details
 const mergedRentals = computed(() => {
@@ -18,9 +20,47 @@ const mergedRentals = computed(() => {
   });
 });
 
-const filteredRentals = computed(() => {
-  if (!rentalSearch.value.trim()) return mergedRentals.value;
+// Function to filter by rental date
+const filterRentalsByDate = computed(() => {
+  const currentDate = new Date();
   return mergedRentals.value.filter(rental => {
+    const rentalStart = new Date(rental.rental_start);
+    const rentalEnd = new Date(rental.rental_end);
+
+    if (filterDate.value === "all") return true;
+
+    if (filterDate.value === "past" && rentalEnd < currentDate) return true;
+    if (filterDate.value === "ongoing" && rentalStart <= currentDate && rentalEnd >= currentDate) return true;
+    if (filterDate.value === "future" && rentalStart > currentDate) return true;
+
+    return false;
+  });
+});
+
+// Function to filter by status
+const filterRentalsByStatus = computed(() => {
+  let rentalsList = filterRentalsByDate.value;
+
+  if (filterStatus.value === "all") return rentalsList;
+  if (filterStatus.value === "not_issued") {
+    return rentalsList.filter(rental => !rental.if_issued);
+  }
+  if (filterStatus.value === "issued") {
+    return rentalsList.filter(rental => rental.if_issued && !rental.if_returned);
+  }
+  if (filterStatus.value === "returned") {
+    return rentalsList.filter(rental => rental.if_returned);
+  }
+
+  return rentalsList;
+});
+
+// Filter rentals based on search input
+const filteredRentals = computed(() => {
+  let rentalsList = filterRentalsByStatus.value;
+  if (!rentalSearch.value.trim()) return rentalsList;
+
+  return rentalsList.filter(rental => {
     const rentalDetails = `${rental.user_name} ${rental.user_phone} ${rental.id} ${rental.car_vin}`.toLowerCase();
     return rentalDetails.includes(rentalSearch.value.toLowerCase());
   });
@@ -65,15 +105,32 @@ onMounted(() => {
   <div class="c-manageRentals">
     <h1>Manage Rentals</h1> <br>
 
-    <label for="rental_search"> <h2>Search Rentals: </h2> </label>
-    <input
-      type="text"
-      id="rental_search"
-      v-model="rentalSearch"
-      placeholder="Search by user name, phone, or rental ID"
-    />
+    <div class="c-menageRentals-filters">
+      <label for="rental_search"><h2>Search Rentals:</h2></label>
+      <input
+        type="text"
+        id="rental_search"
+        v-model="rentalSearch"
+        placeholder="Search by user name, phone, or rental ID"
+      />
 
-    <table >
+      <label for="date_filter"><h2>Filter by Rental Date:</h2></label>
+      <select id="date_filter" v-model="filterDate">
+        <option value="all">All</option>
+        <option value="past">Past</option>
+        <option value="ongoing">Current</option>
+        <option value="future">Future</option>
+      </select>
+
+      <label for="status_filter"><h2>Filter by Status:</h2></label>
+      <select id="status_filter" v-model="filterStatus">
+        <option value="all">All</option>
+        <option value="not_issued">Not Issued</option>
+        <option value="issued">Issued</option>
+        <option value="returned">Returned</option>
+      </select>
+    </div>
+    <table>
       <thead>
         <tr>
           <th>Rental ID</th>
@@ -84,8 +141,8 @@ onMounted(() => {
           <th>Rental End</th>
           <th>Cost</th>
           <th>Is Accepted</th>
-          <th>Menage</th>
-          
+          <th>If Paid</th>
+          <th>Manage</th>
         </tr>
       </thead>
       <tbody>
@@ -97,9 +154,10 @@ onMounted(() => {
           <td>{{ rental.rental_start }}</td>
           <td>{{ rental.rental_end }}</td>
           <td>{{ rental.total_cost }} $</td>
+          <td>{{ rental.if_paid }}</td>
           <td>{{ rental.is_accepted }}</td>
           <td>
-            <router-link :to="`/rentals/menage_rentals${rental.id}`">Manage</router-link>
+            <router-link :to="`/rentals/manage_rentals${rental.id}`">Manage</router-link>
           </td>
         </tr>
       </tbody>
@@ -108,3 +166,10 @@ onMounted(() => {
     <p v-if="responseMessage">{{ responseMessage }}</p>
   </div>
 </template>
+
+<style>
+  .c-menageRentals-filters {
+    display: flex;
+    gap: 0.5rem;
+  }
+</style>

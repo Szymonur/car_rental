@@ -4,7 +4,7 @@
     <div class="c-adminRentalsView">
     <nav class="nav-panel">
         <RouterLink to="/rentals/add_rental">Create rental</RouterLink>
-        <RouterLink to="/rentals/menage_rentals">Menage rentals</RouterLink>
+        <RouterLink to="/rentals/manage_rentals">Manage rentals</RouterLink>
         <!-- <RouterLink to="/about">About</RouterLink> -->
     </nav>
     <div class="router-view">

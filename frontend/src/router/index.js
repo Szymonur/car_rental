@@ -69,13 +69,13 @@ const router = createRouter({
           component: FormAddRental,
         },
         {
-          path: 'menage_rentals',
+          path: 'manage_rentals',
           name: 'menage_rentals',
           component: MenageRentals
         },
         {
-          path: 'menage_rentals:id',
-          name: 'menage_rentals_id',
+          path: 'manage_rentals:id',
+          name: 'manage_rentals_id',
           component: EditRental
         },
       ]

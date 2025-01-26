@@ -108,7 +108,6 @@ input[type="date"] {
     width: 20px;
     height: 20px;
     accent-color: var(--yellow);
-    margin-top: 8px;
     cursor: pointer;
     border: 2px solid var(--yellow);
     background-color: var(--light-blue);

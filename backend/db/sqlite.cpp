@@ -189,6 +189,9 @@ bool SQLiteManager::createTableRental() {
         "car_vin TEXT NOT NULL, "
         "user_id INTEGER NOT NULL, "
         "total_cost REAL NOT NULL, "
+        "if_paid BOOLEAN NOT NULL DEFAULT 0, "
+        "if_issued BOOLEAN NOT NULL DEFAULT 0, "  // New column for issued status
+        "if_returned BOOLEAN NOT NULL DEFAULT 0, " // New column for returned status
         "FOREIGN KEY(car_vin) REFERENCES vehicle(vin), "
         "FOREIGN KEY(user_id) REFERENCES person(id));";
     return executeSQL(sql);
@@ -196,20 +199,19 @@ bool SQLiteManager::createTableRental() {
 
 bool SQLiteManager::addRental(const std::string& rental_start, const std::string& rental_end, 
                               bool is_accepted, const std::string& car_vin, 
-                              int user_id, double total_cost) {
+                              int user_id, double total_cost, bool if_paid, bool if_issued, bool if_returned) {
     try {
-        // Insert rental with total_cost provided as a parameter
-        std::string sql = "INSERT INTO rental (rental_start, rental_end, is_accepted, car_vin, user_id, total_cost) "
-                          "VALUES ('" + rental_start + "', '" + rental_end + "', " + 
-                          (is_accepted ? "1" : "0") + ", '" + car_vin + "', " + 
-                          std::to_string(user_id) + ", " + std::to_string(total_cost) + ");";
+std::string sql = "INSERT INTO rental (rental_start, rental_end, is_accepted, car_vin, user_id, total_cost, if_paid, if_issued, if_returned) "
+                  "VALUES ('" + rental_start + "', '" + rental_end + "', " + 
+                  (is_accepted ? "1" : "0") + ", '" + car_vin + "', " + 
+                  std::to_string(user_id) + ", " + std::to_string(total_cost) + ", " + 
+                  (if_paid ? "1" : "0") + ", " +  (if_issued? "1" : "0") + ", " + (if_returned ? "1" : "0") + ");";
         return executeSQL(sql);
     } catch (const std::exception& e) {
         std::cerr << "Error in addRental: " << e.what() << std::endl;
         return false;
     }
 }
-
 
 crow::json::wvalue SQLiteManager::getRentals() {
     const std::string sql = "SELECT * FROM rental;";
@@ -232,7 +234,10 @@ crow::json::wvalue SQLiteManager::getRentals() {
         rental_json["is_accepted"] = sqlite3_column_int(stmt, 3);
         rental_json["car_vin"] = std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
         rental_json["user_id"] = sqlite3_column_int(stmt, 5);
-        rental_json["total_cost"] = sqlite3_column_double(stmt, 6); // Include total_cost
+        rental_json["total_cost"] = sqlite3_column_double(stmt, 6);
+        rental_json["if_paid"] = sqlite3_column_int(stmt, 7);  // Include if_paid
+        rental_json["if_issued"] = sqlite3_column_int(stmt, 8); // Include if_issued
+        rental_json["if_returned"] = sqlite3_column_int(stmt, 9); // Include if_returned
 
         rentals_json[index] = std::move(rental_json);
         ++index;
@@ -242,7 +247,6 @@ crow::json::wvalue SQLiteManager::getRentals() {
 
     return rentals_json;
 }
-
 
 crow::json::wvalue SQLiteManager::getRentalById(int rentalId) {
     const std::string sql = "SELECT * FROM rental WHERE id = ?;";
@@ -269,7 +273,10 @@ crow::json::wvalue SQLiteManager::getRentalById(int rentalId) {
         rental_json["is_accepted"] = sqlite3_column_int(stmt, 3);
         rental_json["car_vin"] = std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
         rental_json["user_id"] = sqlite3_column_int(stmt, 5);
-        rental_json["total_cost"] = sqlite3_column_double(stmt, 6); // Include total_cost
+        rental_json["total_cost"] = sqlite3_column_double(stmt, 6);
+        rental_json["if_paid"] = sqlite3_column_int(stmt, 7);  // Include if_paid
+        rental_json["if_issued"] = sqlite3_column_int(stmt, 8); // Include if_issued
+        rental_json["if_returned"] = sqlite3_column_int(stmt, 9); // Include if_returned
     } else {
         std::cerr << "No rental found with ID: " << rentalId << std::endl;
     }
@@ -278,6 +285,7 @@ crow::json::wvalue SQLiteManager::getRentalById(int rentalId) {
 
     return rental_json;
 }
+
 
 
 
@@ -293,23 +301,30 @@ bool SQLiteManager::deleteRental(int id) {
 }
 bool SQLiteManager::updateRental(int rental_id, const std::string& rental_start, const std::string& rental_end, 
                                  bool is_accepted, const std::string& car_vin, 
-                                 int user_id, double total_cost) {
-    const std::string sql = "UPDATE rental SET rental_start = ?, rental_end = ?, is_accepted = ?, car_vin = ?, user_id = ?, total_cost = ? WHERE id = ?;";
+                                 int user_id, double total_cost, bool if_paid, bool if_issued, bool if_returned) {
+    const std::string sql = "UPDATE rental SET rental_start = ?, rental_end = ?, is_accepted = ?, car_vin = ?, user_id = ?, total_cost = ?, if_paid = ?, if_issued = ?, if_returned = ?  WHERE id = ?;";
     sqlite3_stmt* stmt;
 
+    // Prepare the SQL statement
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) != SQLITE_OK) {
         std::cerr << "Failed to prepare update statement: " << sqlite3_errmsg(db) << std::endl;
         return false;
     }
 
-    // Bind the parameters
+    // Bind the parameters to the statement
     sqlite3_bind_text(stmt, 1, rental_start.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 2, rental_end.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 3, is_accepted);
     sqlite3_bind_text(stmt, 4, car_vin.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 5, user_id);
     sqlite3_bind_double(stmt, 6, total_cost);  // Bind total_cost
-    sqlite3_bind_int(stmt, 7, rental_id);
+    sqlite3_bind_int(stmt, 7, if_paid);  // Bind if_paid status
+    sqlite3_bind_int(stmt, 8, if_issued);  // Bind the rental ID for update
+    sqlite3_bind_int(stmt, 9, if_returned);  // Bind the rental ID for update
+    sqlite3_bind_int(stmt, 10, rental_id);  // Bind the rental ID for update
+
+    
+    
 
     // Execute the statement
     bool success = (sqlite3_step(stmt) == SQLITE_DONE);
@@ -317,14 +332,18 @@ bool SQLiteManager::updateRental(int rental_id, const std::string& rental_start,
         std::cerr << "Failed to update rental: " << sqlite3_errmsg(db) << std::endl;
     }
 
+    // Finalize the statement
     sqlite3_finalize(stmt);
     return success;
 }
+
+
 crow::json::wvalue SQLiteManager::getRentalsByCarVin(const std::string& carVin) {
     const std::string sql = "SELECT * FROM rental WHERE car_vin = ?;";
     sqlite3_stmt* stmt;
     crow::json::wvalue rentals_json = crow::json::wvalue(); // Initialize as a container for the results
 
+    // Prepare the SQL statement
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, 0) != SQLITE_OK) {
         std::cerr << "Failed to prepare query: " << sqlite3_errmsg(db) << std::endl;
         return rentals_json;
@@ -350,15 +369,21 @@ crow::json::wvalue SQLiteManager::getRentalsByCarVin(const std::string& carVin) 
         rental_json["car_vin"] = std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
         rental_json["user_id"] = sqlite3_column_int(stmt, 5);
         rental_json["total_cost"] = sqlite3_column_double(stmt, 6); // Include total_cost if needed
+        rental_json["if_paid"] = sqlite3_column_int(stmt, 7);  // Retrieve if_paid status
+        rental_json["if_issued"] = sqlite3_column_int(stmt, 8); // Include if_issued
+        rental_json["if_returned"] = sqlite3_column_int(stmt, 9); // Include if_returned
 
+        // Add rental to the JSON array
         rentals_json[index] = std::move(rental_json);
         ++index;
     }
 
+    // Finalize the statement
     sqlite3_finalize(stmt);
 
     return rentals_json;
 }
+
 
 
 
