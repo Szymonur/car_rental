@@ -64,14 +64,15 @@ const validateRental = async () => {
     return false;
   }
 
-  if (startDate < today) {
-    validationMessage.value = "Rental start date cannot be in the past.";
-    return false;
-  }
 
   if (endDate <= startDate) {
     validationMessage.value = "Rental end date must be after the start date.";
     return false;
+  }
+
+  if (startDate < today) {
+    validationMessage.value = "Rental start date is in the past.";
+    return true;
   }
 
   validationMessage.value = ""; // Clear validation message if valid
